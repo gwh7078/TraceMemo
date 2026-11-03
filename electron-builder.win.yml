@@ -1,5 +1,5 @@
-appId: com.tracememo.app
-productName: TraceMemo
+appId: com.paiwan.customerassistant
+productName: 派万客户助理
 afterPack: scripts/after-pack.cjs
 directories:
   buildResources: build
@@ -50,7 +50,7 @@ extraResources:
       - '**/*'
 win:
   icon: icon.ico
-  executableName: TraceMemo
+  executableName: PaiwanCustomerAssistant
   target:
     - target: nsis
       arch:
@@ -68,7 +68,7 @@ electronLanguages:
   - en-US
 publish:
   provider: github
-  owner: Wxw-Gu
+  owner: gwh7078
   repo: TraceMemo
   # 一律先上传为草稿 再到 GitHub 上手动 Publish。
   # 需要预发布时用 `pnpm release:beta`（EP_PRE_RELEASE 会覆盖这里的 draft）。

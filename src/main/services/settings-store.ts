@@ -1,3 +1,4 @@
+import { atomicWrite } from './paiwan-store'
 import { app } from 'electron'
 import fs from 'fs-extra'
 import path from 'path'
@@ -121,7 +122,7 @@ const defaultDbRoot = getDefaultDbRoot()
 
 const DEFAULT_SETTINGS: AppSettings = {
   dbRoot: defaultDbRoot,
-  apiEnabled: true,
+  apiEnabled: false,
   apiHost: '127.0.0.1',
   apiPort: 6131,
   imageKeyRoot: defaultDbRoot,
@@ -154,6 +155,7 @@ const SETTINGS_FILE = path.join(
 )
 
 let cache: AppSettings | null = null
+let settingsReadFailed = false
 
 function ensureDir(): void {
   fs.ensureDirSync(path.dirname(SETTINGS_FILE))
@@ -204,7 +206,8 @@ export function loadSettings(): AppSettings {
       return cache
     }
   } catch (error) {
-    console.warn('[Settings] failed to load, fallback to defaults:', error)
+    settingsReadFailed = true
+    console.warn('[Settings] failed to load; writes blocked:', error)
   }
   cache = { ...DEFAULT_SETTINGS }
   return cache
@@ -217,13 +220,11 @@ export function saveSettings(next: AppSettings): AppSettings {
     keepPersonalWechatProcess?: unknown
   }
   delete sanitized.keepPersonalWechatProcess
-  cache = { ...sanitized, recallProtectionEnabled: false }
-  try {
-    ensureDir()
-    fs.writeJsonSync(SETTINGS_FILE, cache, { spaces: 2 })
-  } catch (error) {
-    console.error('[Settings] failed to save:', error)
-  }
+  if (settingsReadFailed) throw new Error('配置读取失败，已保护原文件；请恢复备份后重启')
+  const candidate = { ...sanitized, recallProtectionEnabled: false, apiEnabled: false }
+  ensureDir()
+  atomicWrite(SETTINGS_FILE, JSON.stringify(candidate, null, 2))
+  cache = candidate
   return cache
 }
 
@@ -232,6 +233,7 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
 }
 
 export function resetSettings(): AppSettings {
+  if (settingsReadFailed) throw new Error('配置读取失败，禁止覆盖原文件')
   cache = null
   try {
     if (fs.existsSync(SETTINGS_FILE)) fs.unlinkSync(SETTINGS_FILE)

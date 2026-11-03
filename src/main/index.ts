@@ -909,6 +909,8 @@ function createWindow(): void {
 
 // Electron 初始化完成并准备创建浏览器窗口后，将调用此方法
 // 某些 API 只能在此事件发生后使用
+if (!app.requestSingleInstanceLock()) app.exit(0)
+
 app.whenReady().then(async () => {
   if (isLegacyMigrationHelper) {
     try {
@@ -921,7 +923,7 @@ app.whenReady().then(async () => {
   }
 
   try {
-    const migration = isUserDataIsolated ? null : await runFirstLaunchMigration(appDataRoots)
+    const migration = app.getName() === 'PaiwanCustomerAssistant' || isUserDataIsolated ? null : await runFirstLaunchMigration(appDataRoots)
     apiTokenStore.setAutomaticGenerationBlocked(migration?.tokenBlockReason)
     if (!migration) {
       appLogger.write({
@@ -1244,7 +1246,7 @@ app.whenReady().then(async () => {
   })
 
   // 设置应用程序用户模型 ID
-  electronApp.setAppUserModelId('com.tracememo.app')
+  electronApp.setAppUserModelId('com.paiwan.customerassistant')
 
   // 开发环境中默认使用 F12 打开或关闭 DevTools
   // 生产环境中忽略 CommandOrControl + R
@@ -1259,11 +1261,11 @@ app.whenReady().then(async () => {
   ipcMain.handle('app-log:getPath', () => appLogger.logPath)
   ipcMain.handle('app-log:reveal', () => appLogger.reveal())
   ipcMain.handle('app-update:getState', () => appUpdateService.getState())
-  ipcMain.handle('app-update:check', () => appUpdateService.check())
-  ipcMain.handle('app-update:download', () => appUpdateService.download())
-  ipcMain.handle('app-update:install', () => appUpdateService.install())
+  ipcMain.handle('app-update:check', () => ({success:false, state:appUpdateService.getState(), error:'派万版本请手动核验升级'}))
+  ipcMain.handle('app-update:download', () => ({success:false, state:appUpdateService.getState(), error:'上游更新已关闭'}))
+  ipcMain.handle('app-update:install', () => ({success:false, error:'上游更新已关闭'}))
   ipcMain.handle('app-update:openDownloadPage', () => appUpdateService.openDownloadPage())
-  appUpdateService.scheduleStartupCheck()
+  // Paiwan builds are manually upgraded; upstream auto-update is disabled.
   ipcMain.handle('cache:getSummary', () => getCacheSummary())
   ipcMain.handle('cache:openKnowledgeDirectory', () => openKnowledgeDirectory())
   ipcMain.handle('cache:clear', async (_, scope: CacheClearScope) => {

@@ -1,3 +1,4 @@
+import { app } from 'electron'
 import { execFile } from 'child_process'
 import { createHash, randomBytes, randomUUID } from 'crypto'
 import {
@@ -576,6 +577,9 @@ export class PersonalWechatSendService {
   }
 
   async send(request: PersonalWechatSendRequest): Promise<PersonalWechatSendResult> {
+    if (app.getName() === 'PaiwanCustomerAssistant') {
+      return {success: false, status: await this.getStatus(), error: '派万版本不开放个人微信外发'}
+    }
     if (process.platform === 'win32') return this.sendWindows(request)
     if (process.platform === 'darwin') {
       if (request.type === 'text') return this.sendMacText(request)
